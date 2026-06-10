@@ -1,4 +1,4 @@
-# Matplotlib 심화 — 여러 그래프를 한 화면에 그리기 (Subplot 레이아웃 완전 정복)
+# Matplotlib & Seaborn 심화 — Subplot 레이아웃 + 히트맵 완전 정복
 
 # 개념 정리
 # plt.subplots(rows, cols)  : rows×cols 격자로 서브플롯 생성 — fig와 axes 배열 반환
@@ -9,9 +9,15 @@
 # plt.subplots_adjust()     : hspace(수직 간격), wspace(수평 간격) 수동 조정
 # plt.suptitle()            : 전체 figure에 공통 제목 추가 (y= 로 위치 조정)
 # ax.grid(True, alpha=0.3)  : 격자선 추가 (alpha로 투명도 조정)
+# ax.fill_between()         : 선 그래프 아래 면적 채우기 — 추세 강조
+# sns.heatmap()             : 2D 데이터를 색상으로 표현 — annot=True로 숫자 표시
+# cmap                      : 색상 팔레트 — 'YlOrRd'(노랑→빨강), 'RdYlGn'(빨→녹)
+# fmt='d'                   : annot 숫자 포맷 — 'd'=정수, '.1f'=소수 1자리
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # 한글 깨짐 방지 설정
 plt.rc('font', family='AppleGothic')
@@ -126,4 +132,110 @@ for ax, product, color, title in zip(axes.flat, all_products, colors, titles):
 # hspace: 수직 간격 / wspace: 수평 간격
 plt.subplots_adjust(hspace=0.3, wspace=0.3)
 plt.suptitle('2026년 상반기 상품별 판매 현황', fontsize=16, fontweight='bold', y=0.995)
+plt.show()
+
+# ===== 실무 예제: 마케팅 대시보드 — 4가지 KPI 한 화면에 =====
+
+print("\n=== 5. 실무 예제: 마케팅 4가지 지표 ===")
+np.random.seed(42)
+
+website_traffic = np.array([1000, 1200, 1100, 1400, 1600, 1800])
+conversion_rate = np.array([5.2, 5.8, 5.5, 6.2, 6.5, 7.0])
+customer_cost   = np.array([5000, 5200, 4800, 5500, 5800, 6200])
+revenue         = np.array([50000, 60000, 55000, 70000, 80000, 95000])
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 웹사이트 트래픽 — 막대 그래프
+axes[0, 0].bar(months, website_traffic, color='skyblue')
+axes[0, 0].set_title('월별 웹사이트 방문자', fontweight='bold')
+axes[0, 0].set_ylabel('방문자 수')
+axes[0, 0].grid(True, alpha=0.3, axis='y')
+
+# 전환율 — 선 그래프 + fill_between으로 면적 강조
+axes[0, 1].plot(months, conversion_rate, marker='o', color='green', linewidth=2)
+axes[0, 1].fill_between(range(len(months)), conversion_rate, alpha=0.3, color='green')
+axes[0, 1].set_title('월별 전환율', fontweight='bold')
+axes[0, 1].set_ylabel('전환율 (%)')
+axes[0, 1].grid(True, alpha=0.3)
+
+# 고객 획득 비용
+axes[1, 0].bar(months, customer_cost, color='coral')
+axes[1, 0].set_title('월별 고객 획득 비용', fontweight='bold')
+axes[1, 0].set_xlabel('월')
+axes[1, 0].set_ylabel('비용 (원)')
+axes[1, 0].grid(True, alpha=0.3, axis='y')
+
+# 매출액
+axes[1, 1].bar(months, revenue, color='lightgreen')
+axes[1, 1].set_title('월별 매출액', fontweight='bold')
+axes[1, 1].set_xlabel('월')
+axes[1, 1].set_ylabel('매출액 (원)')
+axes[1, 1].grid(True, alpha=0.3, axis='y')
+
+plt.suptitle('2026년 상반기 마케팅 성과 분석', fontsize=16, fontweight='bold')
+plt.tight_layout()
+plt.show()
+
+# ===== Seaborn 히트맵 — 2D 데이터 패턴 시각화 =====
+
+# 예제 1: 요일별 × 시간대별 카페 방문자
+print("\n=== 6. 히트맵: 카페 방문자 (요일 × 시간대) ===")
+
+days  = ['월', '화', '수', '목', '금', '토', '일']
+hours = ['09시', '12시', '15시', '18시', '21시']
+
+# 방문자 수 행렬 (7일 × 5시간대) → .T 로 (5시간대 × 7일) 변환
+cafe_data = np.array([
+    [50,  100, 120, 80,  60],   # 월
+    [55,  110, 130, 85,  65],   # 화
+    [52,  105, 125, 82,  63],   # 수
+    [60,  115, 135, 90,  70],   # 목
+    [70,  130, 150, 100, 80],   # 금
+    [100, 180, 200, 150, 120],  # 토
+    [90,  170, 190, 140, 110],  # 일
+]).T  # 행=시간대, 열=요일
+
+fig, ax = plt.subplots(figsize=(10, 5))
+sns.heatmap(cafe_data,
+            xticklabels=days,
+            yticklabels=hours,
+            cmap='YlOrRd',      # 노랑 → 주황 → 빨강 (값이 높을수록 진함)
+            annot=True,          # 각 셀에 숫자 표시
+            fmt='d',             # 정수 포맷
+            cbar_kws={'label': '방문자 수'},
+            ax=ax)
+ax.set_title('요일별 × 시간대별 카페 방문자', fontsize=14, fontweight='bold')
+ax.set_xlabel('요일')
+ax.set_ylabel('시간대')
+plt.tight_layout()
+plt.show()
+
+# 예제 2: 상품 × 지역 판매량
+print("\n=== 7. 히트맵: 상품 × 지역 판매량 ===")
+
+products = ['상품A', '상품B', '상품C', '상품D']
+regions  = ['서울', '경기', '인천', '부산', '대구', '대전']
+
+sales_data = np.array([
+    [150, 120, 100, 80,  70,  90],
+    [100, 130, 90,  100, 110, 95],
+    [120, 90,  110, 95,  100, 105],
+    [110, 100, 120, 110, 95,  100],
+])
+
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.heatmap(sales_data,
+            xticklabels=regions,
+            yticklabels=products,
+            cmap='RdYlGn',      # 빨강(낮음) → 노랑 → 초록(높음)
+            annot=True,
+            fmt='d',
+            cbar_kws={'label': '판매량 (개)'},
+            linewidths=0.5,      # 셀 구분선
+            ax=ax)
+ax.set_title('지역별 상품 판매량', fontsize=14, fontweight='bold')
+ax.set_xlabel('지역')
+ax.set_ylabel('상품')
+plt.tight_layout()
 plt.show()
