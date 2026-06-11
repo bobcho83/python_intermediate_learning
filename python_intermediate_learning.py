@@ -12,7 +12,13 @@
 # ax.fill_between()         : 선 그래프 아래 면적 채우기 — 추세 강조
 # sns.heatmap()             : 2D 데이터를 색상으로 표현 — annot=True로 숫자 표시
 # cmap                      : 색상 팔레트 — 'YlOrRd'(노랑→빨강), 'RdYlGn'(빨→녹)
-# fmt='d'                   : annot 숫자 포맷 — 'd'=정수, '.1f'=소수 1자리
+# fmt='d'                   : annot 숫자 포맷 — 'd'=정수, '.2f'=소수 2자리
+# center=0 / vmin·vmax     : 히트맵 색상 중심값·범위 고정 — 상관계수 시각화에 필수
+# square=True              : 각 셀을 정사각형으로 표시
+# cmap='coolwarm'          : 파랑(음수) ↔ 빨강(양수) — 상관계수 히트맵에 최적
+# cmap='viridis'           : 보라→파랑→초록→노랑 — 점수/등급 데이터에 적합
+# cmap='BuGn'              : 파랑→초록 — 구매액 등 양수 데이터에 적합
+# data.corr()              : DataFrame 변수 간 상관계수 행렬 계산 (Pandas)
 
 import numpy as np
 import pandas as pd
@@ -237,5 +243,93 @@ sns.heatmap(sales_data,
 ax.set_title('지역별 상품 판매량', fontsize=14, fontweight='bold')
 ax.set_xlabel('지역')
 ax.set_ylabel('상품')
+plt.tight_layout()
+plt.show()
+
+# 예제 3: 변수 간 상관계수 히트맵
+print("\n=== 8. 히트맵: 마케팅 변수 간 상관계수 ===")
+
+np.random.seed(42)
+n_sample = 100
+data = pd.DataFrame({
+    '웹사이트 트래픽': np.random.randn(n_sample).cumsum(),
+    '전환율':          np.random.randn(n_sample).cumsum(),
+    '고객 만족도':     np.random.randn(n_sample).cumsum(),
+    '판매액':          np.random.randn(n_sample).cumsum(),
+    '반복 구매율':     np.random.randn(n_sample).cumsum()
+})
+
+correlation_matrix = data.corr()  # Pandas .corr() 로 상관계수 행렬 계산
+
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.heatmap(correlation_matrix,
+            annot=True,
+            fmt='.2f',
+            cmap='coolwarm',    # 파랑(음수) ↔ 빨강(양수) — 상관계수에 최적
+            center=0,           # 색상 중심을 0으로 고정
+            vmin=-1, vmax=1,    # 상관계수 범위 고정
+            square=True,        # 셀을 정사각형으로
+            linewidths=1,
+            cbar_kws={'label': '상관계수'},
+            ax=ax)
+ax.set_title('마케팅 변수 간 상관계수', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.show()
+
+# 예제 4: 상품별 특성 평가 — viridis 색상 + linecolor
+print("\n=== 9. 히트맵: 상품 특성 평가 점수 ===")
+
+product_features = np.array([
+    [8, 7, 6, 9, 5],
+    [6, 8, 7, 7, 8],
+    [7, 6, 8, 6, 7],
+    [9, 5, 7, 8, 6]
+])
+features = ['가격경쟁력', '디자인', '품질', '배송속도', '고객지원']
+products_feat = ['상품A', '상품B', '상품C', '상품D']
+
+df_feat = pd.DataFrame(product_features, index=products_feat, columns=features)
+
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.heatmap(df_feat,
+            annot=True,
+            fmt='d',
+            cmap='viridis',         # 보라→파랑→초록→노랑
+            vmin=5, vmax=10,
+            cbar_kws={'label': '점수 (5~10점)'},
+            linewidths=2,
+            linecolor='white',      # 셀 구분선 색상
+            ax=ax)
+ax.set_title('상품별 특성 평가 점수', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.show()
+
+# 예제 5: 고객 세대별 카테고리 구매 패턴
+print("\n=== 10. 히트맵: 고객 세그먼트 × 상품 카테고리 ===")
+
+customer_segments = ['20대', '30대', '40대', '50대', '60대']
+categories = ['패션', '전자제품', '식품', '생활용품', '책']
+
+purchase_amount = np.array([
+    [150, 200, 80,  100, 50],   # 20대
+    [120, 180, 120, 130, 60],   # 30대
+    [100, 150, 150, 140, 80],   # 40대
+    [80,  120, 140, 160, 100],  # 50대
+    [60,  100, 130, 150, 120],  # 60대
+])
+
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.heatmap(purchase_amount,
+            xticklabels=categories,
+            yticklabels=customer_segments,
+            annot=True,
+            fmt='d',
+            cmap='BuGn',            # 파랑 → 초록
+            cbar_kws={'label': '구매액 (만원)'},
+            linewidths=1,
+            ax=ax)
+ax.set_title('고객 세대별 상품 카테고리 구매액', fontsize=14, fontweight='bold')
+ax.set_xlabel('상품 카테고리')
+ax.set_ylabel('고객 세대')
 plt.tight_layout()
 plt.show()
