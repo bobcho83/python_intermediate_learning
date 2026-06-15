@@ -1,4 +1,4 @@
-# Matplotlib & Seaborn 심화 — Subplot 레이아웃 + 히트맵 완전 정복
+# Matplotlib & Seaborn 심화 — Subplot 레이아웃 + 히트맵 + 분포도 완전 정복
 
 # 개념 정리
 # plt.subplots(rows, cols)  : rows×cols 격자로 서브플롯 생성 — fig와 axes 배열 반환
@@ -19,6 +19,13 @@
 # cmap='viridis'           : 보라→파랑→초록→노랑 — 점수/등급 데이터에 적합
 # cmap='BuGn'              : 파랑→초록 — 구매액 등 양수 데이터에 적합
 # data.corr()              : DataFrame 변수 간 상관계수 행렬 계산 (Pandas)
+# ax.hist(bins=20)         : 히스토그램 — bins 수로 막대 개수 조절
+# density=True             : hist를 빈도 대신 밀도(density)로 표시 — KDE와 함께 쓸 때
+# stats.gaussian_kde()     : scipy KDE 곡선 — 분포의 연속 추정선
+# ax.boxplot(vert=False)   : 가로 박스플롯 — vert=True(기본)=세로
+# sns.violinplot()         : 박스플롯 + KDE 분포를 합친 형태
+# inner='box'              : violin 내부에 박스플롯 표시
+# sns.stripplot()          : 개별 데이터 점 표시 — violin에 겹쳐서 사용
 
 import numpy as np
 import pandas as pd
@@ -331,5 +338,98 @@ sns.heatmap(purchase_amount,
 ax.set_title('고객 세대별 상품 카테고리 구매액', fontsize=14, fontweight='bold')
 ax.set_xlabel('상품 카테고리')
 ax.set_ylabel('고객 세대')
+plt.tight_layout()
+plt.show()
+
+# ===== 분포도·박스플롯·바이올린 플롯 =====
+
+from scipy import stats
+
+np.random.seed(42)
+# 고객 100명의 월간 구매액 (정규분포, 최소 10000원)
+customer_purchase = np.maximum(np.random.normal(loc=50000, scale=15000, size=100), 10000)
+
+print("\n=== 기초 통계 ===")
+print(f"평균: {np.mean(customer_purchase):,.0f}원  /  표준편차: {np.std(customer_purchase):,.0f}원")
+print(f"최솟값: {np.min(customer_purchase):,.0f}원  /  최댓값: {np.max(customer_purchase):,.0f}원")
+
+# 히스토그램 — 기본 + KDE 곡선 비교
+print("\n=== 11. 히스토그램 (기본 vs KDE) ===")
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+axes[0].hist(customer_purchase, bins=20, color='skyblue', edgecolor='black')
+axes[0].set_title('기본 히스토그램')
+axes[0].set_xlabel('구매액 (원)')
+axes[0].set_ylabel('빈도')
+axes[0].grid(True, alpha=0.3, axis='y')
+
+# density=True → 밀도(y축)로 변환해야 KDE 곡선과 스케일 일치
+axes[1].hist(customer_purchase, bins=20, color='skyblue', edgecolor='black', density=True, alpha=0.7)
+kde = stats.gaussian_kde(customer_purchase)   # KDE: 분포의 연속 추정선
+x_range = np.linspace(customer_purchase.min(), customer_purchase.max(), 100)
+axes[1].plot(x_range, kde(x_range), 'r-', linewidth=2, label='KDE')
+axes[1].set_title('KDE 곡선이 있는 히스토그램')
+axes[1].set_xlabel('구매액 (원)')
+axes[1].set_ylabel('밀도')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+
+# Box Plot — 세로 vs 가로
+print("\n=== 12. Box Plot (세로 vs 가로) ===")
+product_a_sales = np.random.normal(loc=100, scale=25, size=50)
+product_b_sales = np.random.normal(loc=120, scale=20, size=50)
+product_c_sales = np.random.normal(loc=90,  scale=30, size=50)
+box_data = [product_a_sales, product_b_sales, product_c_sales]
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+axes[0].boxplot(box_data, labels=['상품A', '상품B', '상품C'])
+axes[0].set_title('세로 Box Plot')
+axes[0].set_ylabel('판매액')
+axes[0].grid(True, alpha=0.3, axis='y')
+
+axes[1].boxplot(box_data, labels=['상품A', '상품B', '상품C'], vert=False)  # vert=False → 가로
+axes[1].set_title('가로 Box Plot')
+axes[1].set_xlabel('판매액')
+axes[1].grid(True, alpha=0.3, axis='x')
+
+plt.tight_layout()
+plt.show()
+
+# Box Plot 구조 설명
+print("""
+[Box Plot 해석]
+  최대값 ─ 이상치를 제외한 최대값
+        |
+  75분위 ┐
+         ├ 가운데 50% 데이터 (IQR)
+  25분위 ┘
+        |
+  최소값 ─ 이상치를 제외한 최소값
+  ● 점    ─ 이상치 (IQR × 1.5 바깥)
+""")
+
+# Violin Plot — Box Plot + KDE 분포를 합친 형태
+print("\n=== 13. Violin Plot ===")
+plot_data = pd.DataFrame({
+    '판매액': np.concatenate([product_a_sales, product_b_sales, product_c_sales]),
+    '상품':   ['상품A']*50 + ['상품B']*50 + ['상품C']*50
+})
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+sns.violinplot(data=plot_data, x='상품', y='판매액', ax=axes[0])
+axes[0].set_title('Violin Plot')
+axes[0].grid(True, alpha=0.3, axis='y')
+
+# inner='box' → violin 내부에 박스플롯 / stripplot → 개별 데이터 점 겹쳐 표시
+sns.violinplot(data=plot_data, x='상품', y='판매액', ax=axes[1], inner='box')
+sns.stripplot(data=plot_data, x='상품', y='판매액', ax=axes[1], color='black', alpha=0.3, size=3)
+axes[1].set_title('Violin Plot + 개별 데이터')
+axes[1].grid(True, alpha=0.3, axis='y')
+
 plt.tight_layout()
 plt.show()
