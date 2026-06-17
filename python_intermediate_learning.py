@@ -23,9 +23,18 @@
 # density=True             : hist를 빈도 대신 밀도(density)로 표시 — KDE와 함께 쓸 때
 # stats.gaussian_kde()     : scipy KDE 곡선 — 분포의 연속 추정선
 # ax.boxplot(vert=False)   : 가로 박스플롯 — vert=True(기본)=세로
+# sns.boxplot()            : Seaborn 박스플롯 — DataFrame과 x/y 지정으로 그룹 비교 편리
 # sns.violinplot()         : 박스플롯 + KDE 분포를 합친 형태
 # inner='box'              : violin 내부에 박스플롯 표시
 # sns.stripplot()          : 개별 데이터 점 표시 — violin에 겹쳐서 사용
+# np.percentile(data, 25)  : 사분위수 계산 — Q1(25%), Q3(75%)
+# IQR = Q3 - Q1           : 사분위 범위 — 이상치 기준: Q1-1.5×IQR ~ Q3+1.5×IQR
+# go.Figure() / go.Scatter / go.Bar : Plotly 인터랙티브 그래프 객체 생성
+# fig.add_trace()          : Plotly Figure에 데이터 계열 추가
+# fig.update_layout()      : Plotly 레이아웃(제목·축·template) 설정
+# hovermode='x unified'    : 마우스 hover 시 같은 x값의 모든 계열 동시 표시
+# px.scatter(color=, size=): Plotly Express 산점도 — 색상/크기로 추가 차원 표현
+# template='plotly_white'  : Plotly 기본 테마 (흰 배경)
 
 import numpy as np
 import pandas as pd
@@ -433,3 +442,135 @@ axes[1].grid(True, alpha=0.3, axis='y')
 
 plt.tight_layout()
 plt.show()
+
+# ===== 실무 예제: 연령대별 구매액 분포 비교 =====
+
+print("\n=== 14. 연령대별 구매액 분포 (Box vs Violin) ===")
+age_20s = np.random.normal(loc=40000, scale=12000, size=50)
+age_30s = np.random.normal(loc=55000, scale=15000, size=50)
+age_40s = np.random.normal(loc=65000, scale=18000, size=50)
+age_50s = np.random.normal(loc=60000, scale=20000, size=50)
+
+purchase_by_age = pd.DataFrame({
+    '구매액': np.concatenate([age_20s, age_30s, age_40s, age_50s]),
+    '연령대': ['20대']*50 + ['30대']*50 + ['40대']*50 + ['50대']*50
+})
+
+fig, axes = plt.subplots(2, 1, figsize=(10, 10))
+
+# sns.boxplot — DataFrame + x/y 지정으로 그룹별 비교 편리
+sns.boxplot(data=purchase_by_age, x='연령대', y='구매액', ax=axes[0])
+axes[0].set_title('연령대별 구매액 분포 (Box Plot)', fontsize=12, fontweight='bold')
+axes[0].set_ylabel('구매액 (원)')
+axes[0].grid(True, alpha=0.3, axis='y')
+
+sns.violinplot(data=purchase_by_age, x='연령대', y='구매액', ax=axes[1])
+axes[1].set_title('연령대별 구매액 분포 (Violin Plot)', fontsize=12, fontweight='bold')
+axes[1].set_ylabel('구매액 (원)')
+axes[1].grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+
+# ===== 이상치 탐지 — IQR 방법 =====
+
+print("\n=== 15. 이상치 탐지 (IQR 방법) ===")
+outlier_data = np.concatenate([
+    np.random.normal(loc=50000, scale=10000, size=95),
+    [200000, 210000, 220000, 230000, 2400000]  # 이상치 5개
+])
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+axes[0].hist(outlier_data, bins=30, color='skyblue', edgecolor='black')
+axes[0].set_title('이상치가 포함된 데이터 (히스토그램)')
+axes[0].set_xlabel('값')
+axes[0].set_ylabel('빈도')
+
+axes[1].boxplot(outlier_data)
+axes[1].set_title('이상치가 포함된 데이터 (Box Plot)')
+axes[1].set_ylabel('값')
+axes[1].grid(True, alpha=0.3, axis='y')
+
+# IQR 이상치 기준 계산: Q1 - 1.5×IQR ~ Q3 + 1.5×IQR 바깥이 이상치
+Q1 = np.percentile(outlier_data, 25)
+Q3 = np.percentile(outlier_data, 75)
+IQR = Q3 - Q1
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+outliers = outlier_data[(outlier_data < lower_bound) | (outlier_data > upper_bound)]
+print(f"정상 범위: {lower_bound:,.0f} ~ {upper_bound:,.0f}원")
+print(f"이상치 개수: {len(outliers)}개  /  값: {sorted(outliers.astype(int))}")
+
+plt.tight_layout()
+plt.show()
+
+# ===== Plotly 인터랙티브 그래프 =====
+
+import plotly.graph_objects as go
+import plotly.express as px
+
+months_p    = ['1월', '2월', '3월', '4월', '5월', '6월']
+product_a_p = [100, 120, 115, 140, 160, 180]
+product_b_p = [80,  95,  100, 110, 120, 135]
+product_c_p = [150, 145, 160, 170, 175, 190]
+
+# 인터랙티브 선 그래프 — hover로 값 확인, 범례 클릭으로 계열 on/off
+print("\n=== 16. Plotly 인터랙티브 선 그래프 ===")
+fig_p = go.Figure()
+for name, data, color in [('상품A', product_a_p, 'red'), ('상품B', product_b_p, 'blue'), ('상품C', product_c_p, 'green')]:
+    fig_p.add_trace(go.Scatter(
+        x=months_p, y=data,
+        mode='lines+markers',
+        name=name,
+        line=dict(color=color, width=2),
+        marker=dict(size=8)
+    ))
+fig_p.update_layout(
+    title='2026년 상반기 상품별 판매량',
+    xaxis_title='월', yaxis_title='판매량',
+    hovermode='x unified',   # 같은 x값의 모든 계열을 한 번에 표시
+    template='plotly_white'
+)
+fig_p.show()
+
+# 인터랙티브 막대 그래프 — text=values로 막대 위 값 자동 표시
+print("\n=== 17. Plotly 인터랙티브 막대 그래프 ===")
+categories_p = ['상품A', '상품B', '상품C', '상품D', '상품E']
+values_p     = [150, 120, 180, 90, 110]
+
+fig_p2 = go.Figure(data=[go.Bar(
+    x=categories_p,
+    y=values_p,
+    marker=dict(color=['red', 'blue', 'green', 'orange', 'purple']),
+    text=values_p,
+    textposition='auto',
+    hovertemplate='<b>%{x}</b><br>판매량: %{y}개<extra></extra>'
+)])
+fig_p2.update_layout(title='상품별 6월 판매량', xaxis_title='상품', yaxis_title='판매량', template='plotly_white')
+fig_p2.show()
+
+# 인터랙티브 산점도 — color=그룹, size=연속값으로 3차원 정보 표현
+print("\n=== 18. Plotly 인터랙티브 산점도 ===")
+np.random.seed(42)
+n_customers  = 100
+customer_age = np.random.randint(20, 70, n_customers)
+purchase_amt = customer_age * 1000 + np.random.normal(0, 20000, n_customers)
+loyalty      = np.random.rand(n_customers)
+age_group    = ['20대' if a < 30 else '30대' if a < 40 else '40대' if a < 50 else '50대' if a < 60 else '60대'
+                for a in customer_age]
+
+df_scatter = pd.DataFrame({'age': customer_age, 'purchase': purchase_amt, 'loyalty': loyalty, 'age_group': age_group})
+
+fig_p3 = px.scatter(
+    df_scatter,
+    x='age', y='purchase',
+    color='age_group',       # 그룹별 색상 자동 지정
+    size='loyalty',          # 충성도 → 점 크기
+    hover_data={'loyalty': ':.2f'},
+    title='고객 나이 vs 구매액 (크기=충성도)',
+    labels={'age': '고객 나이', 'purchase': '구매액 (원)'},
+    template='plotly_white'
+)
+fig_p3.show()

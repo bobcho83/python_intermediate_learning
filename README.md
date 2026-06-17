@@ -1,6 +1,6 @@
-# Matplotlib & Seaborn 심화 — Subplot + 히트맵 + 분포도 완전 정복
+# Matplotlib & Seaborn 심화 + Plotly 인터랙티브 — 시각화 완전 정복
 
-여러 그래프 배치(Subplot), Seaborn 히트맵 5종, 분포도·박스플롯·바이올린 플롯을 다루는 시각화 심화 프로젝트입니다.
+Subplot 레이아웃, 히트맵, 분포도·박스플롯·바이올린 플롯, Plotly 인터랙티브 그래프까지 다루는 시각화 심화 프로젝트입니다.
 
 ## 학습 내용
 
@@ -17,45 +17,47 @@
 | 9. 히트맵 — 특성 평가 | `cmap='viridis'`, `vmin·vmax`, `linecolor='white'` |
 | 10. 히트맵 — 고객 세그먼트 | 세대별 카테고리 구매액, `cmap='BuGn'` |
 | 11. 히스토그램 | `hist(bins=20)`, `density=True` + KDE 곡선 (`scipy.stats`) |
-| 12. Box Plot | 세로/가로 박스플롯, IQR·이상치 해석 |
-| 13. Violin Plot | `sns.violinplot(inner='box')` + `sns.stripplot` 개별 데이터 점 |
+| 12. Box Plot | 세로/가로 박스플롯, IQR·이상치 구조 해석 |
+| 13. Violin Plot | `sns.violinplot(inner='box')` + `sns.stripplot` |
+| 14. 연령대별 분포 비교 | `sns.boxplot` + `sns.violinplot` 그룹 비교 |
+| 15. 이상치 탐지 | IQR 방법 — `Q1 - 1.5×IQR ~ Q3 + 1.5×IQR` |
+| 16. Plotly 선 그래프 | `go.Scatter`, `hovermode='x unified'`, 범례 클릭 on/off |
+| 17. Plotly 막대 그래프 | `go.Bar`, `text`, `hovertemplate` |
+| 18. Plotly 산점도 | `px.scatter(color=, size=)` — 색상·크기로 3차원 표현 |
 
 ## 핵심 개념 정리
 
 ```python
 # Matplotlib Subplot
-plt.subplots(rows, cols)                      # rows×cols 격자 생성
-axes[r, c] / axes.flat                        # 2D 인덱싱 / 1D 순회
-plt.subplot(r, c, n)                          # 불규칙 격자
-plt.tight_layout() / plt.subplots_adjust()    # 여백 자동/수동 조정
-ax.fill_between(x, y, alpha=0.3)              # 선 아래 면적 채우기
+plt.subplots(rows, cols)                      # 격자 생성
+axes.flat                                     # 2D axes → 1D 순회
+ax.fill_between(x, y, alpha=0.3)              # 선 아래 면적
 
 # Seaborn Heatmap
 sns.heatmap(data, annot=True, fmt='d',
-    cmap='coolwarm', center=0,
-    vmin=-1, vmax=1, square=True,
-    linewidths=1, linecolor='white')
+    cmap='coolwarm', center=0, vmin=-1, vmax=1,
+    square=True, linewidths=1, linecolor='white')
 data.corr()                                   # 상관계수 행렬
 
-# 분포도
-ax.hist(x, bins=20, density=True)             # 히스토그램 (density=True → KDE와 함께)
-stats.gaussian_kde(x)                         # scipy KDE 곡선
-
-# Box Plot / Violin Plot
+# 분포도 / 박스플롯
+ax.hist(x, bins=20, density=True)
+stats.gaussian_kde(x)                         # KDE 곡선
 ax.boxplot(data, vert=False)                  # 가로 박스플롯
-sns.violinplot(data=df, x='그룹', y='값',
-    inner='box')                              # violin 내부 박스플롯
-sns.stripplot(color='black', alpha=0.3)       # 개별 데이터 점 겹치기
-```
+sns.boxplot(data=df, x='그룹', y='값')        # 그룹 비교
+sns.violinplot(inner='box')
+sns.stripplot(color='black', alpha=0.3)
 
-**Box Plot 해석:**
-```
-최대값 ─ 이상치를 제외한 최대값
-  75분위 ┐
-         ├ IQR (가운데 50% 데이터)
-  25분위 ┘
-최소값 ─ 이상치를 제외한 최소값
-  ●     ─ 이상치 (IQR × 1.5 바깥)
+# 이상치 탐지 (IQR)
+Q1, Q3 = np.percentile(data, 25), np.percentile(data, 75)
+IQR = Q3 - Q1
+outliers = data[(data < Q1 - 1.5*IQR) | (data > Q3 + 1.5*IQR)]
+
+# Plotly 인터랙티브
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=, y=, mode='lines+markers'))
+fig.add_trace(go.Bar(x=, y=, text=, hovertemplate='...'))
+fig.update_layout(hovermode='x unified', template='plotly_white')
+px.scatter(df, x=, y=, color='그룹', size='값')  # Plotly Express
 ```
 
 **주요 색상 팔레트 (cmap):**
@@ -79,5 +81,6 @@ python_intermediate_learning/
 ## 실행 방법
 
 ```bash
+pip install plotly   # Plotly 섹션 실행 시 필요
 python python_intermediate_learning.py
 ```
