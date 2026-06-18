@@ -30,11 +30,15 @@
 # np.percentile(data, 25)  : 사분위수 계산 — Q1(25%), Q3(75%)
 # IQR = Q3 - Q1           : 사분위 범위 — 이상치 기준: Q1-1.5×IQR ~ Q3+1.5×IQR
 # go.Figure() / go.Scatter / go.Bar : Plotly 인터랙티브 그래프 객체 생성
+# go.Box()                 : Plotly 인터랙티브 박스플롯 — hover로 Q1/Q3/중앙값 확인
+# go.Sunburst()            : 계층적 데이터를 원형 트리맵으로 표현 (labels, parents, values)
 # fig.add_trace()          : Plotly Figure에 데이터 계열 추가
 # fig.update_layout()      : Plotly 레이아웃(제목·축·template) 설정
 # hovermode='x unified'    : 마우스 hover 시 같은 x값의 모든 계열 동시 표시
 # px.scatter(color=, size=): Plotly Express 산점도 — 색상/크기로 추가 차원 표현
 # template='plotly_white'  : Plotly 기본 테마 (흰 배경)
+# make_subplots(rows, cols): Plotly 서브플롯 격자 생성 — row/col 지정으로 계열 배치
+# fill='tozeroy'           : 선 아래 면적을 0까지 채움 — 누적 그래프 강조
 
 import numpy as np
 import pandas as pd
@@ -574,3 +578,74 @@ fig_p3 = px.scatter(
     template='plotly_white'
 )
 fig_p3.show()
+
+# Plotly 인터랙티브 Box Plot — hover로 Q1/중앙값/Q3 자동 표시
+print("\n=== 19. Plotly 인터랙티브 Box Plot ===")
+np.random.seed(42)
+age_20s_b = np.random.normal(40000, 12000, 50)
+age_30s_b = np.random.normal(55000, 15000, 50)
+age_40s_b = np.random.normal(65000, 18000, 50)
+
+fig_box = go.Figure()
+for name, data, color in [('20대', age_20s_b, 'red'), ('30대', age_30s_b, 'blue'), ('40대', age_40s_b, 'green')]:
+    fig_box.add_trace(go.Box(y=data, name=name, marker=dict(color=color)))
+
+fig_box.update_layout(title='연령대별 구매액 분포', yaxis_title='구매액 (원)', template='plotly_white')
+fig_box.show()
+
+# Sunburst Chart — 계층적 데이터를 원형 트리맵으로 표현
+print("\n=== 20. Plotly Sunburst Chart (계층적 데이터) ===")
+categories_data = pd.DataFrame({
+    'category':    ['의류', '의류', '의류', '의류', '전자제품', '전자제품', '전자제품', '식품', '식품', '식품'],
+    'subcategory': ['셔츠', '바지', '신발', '액세서리', '스마트폰', '노트북', '태블릿', '음료', '과자', '라면'],
+    'sales':       [150, 120, 180, 90, 200, 250, 180, 100, 120, 110]
+})
+
+labels  = ['전체'] + list(categories_data['category'].unique()) + list(categories_data['subcategory'])
+parents = [''] + ['전체'] * 3 + ['의류'] * 4 + ['전자제품'] * 3 + ['식품'] * 3
+values  = ([sum(categories_data['sales'])] +
+           [categories_data[categories_data['category'] == cat]['sales'].sum()
+            for cat in categories_data['category'].unique()] +
+           list(categories_data['sales']))
+
+fig_sun = go.Figure(go.Sunburst(
+    labels=labels,
+    parents=parents,
+    values=values,
+    hovertemplate='<b>%{label}</b><br>판매액: %{value}만원<extra></extra>',
+    marker=dict(colorscale='RdBu')
+))
+fig_sun.update_layout(title='상품 카테고리별 판매액 분포', width=800, height=800)
+fig_sun.show()
+
+# Plotly make_subplots — 인터랙티브 마케팅 대시보드
+print("\n=== 21. Plotly make_subplots 마케팅 대시보드 ===")
+from plotly.subplots import make_subplots
+
+np.random.seed(42)
+days_d        = list(range(1, 31))
+traffic_d     = np.cumsum(np.random.normal(50, 20, 30)) + 500
+conv_rate_d   = np.random.uniform(4, 8, 30)
+revenue_d     = traffic_d * conv_rate_d * 100
+
+fig_dash = make_subplots(
+    rows=2, cols=2,
+    subplot_titles=('일일 웹사이트 방문자', '전환율', '일일 매출액', '누적 매출액')
+)
+
+fig_dash.add_trace(go.Scatter(x=days_d, y=traffic_d,   name='방문자',   line=dict(color='blue')),   row=1, col=1)
+fig_dash.add_trace(go.Scatter(x=days_d, y=conv_rate_d, name='전환율',   line=dict(color='green')),  row=1, col=2)
+fig_dash.add_trace(go.Scatter(x=days_d, y=revenue_d,   name='매출액',   line=dict(color='orange')), row=2, col=1)
+fig_dash.add_trace(go.Scatter(
+    x=days_d, y=np.cumsum(revenue_d),
+    name='누적 매출액',
+    fill='tozeroy',             # 선 아래 면적을 0까지 채움
+    line=dict(color='red')
+), row=2, col=2)
+
+for r, c, yt in [(1,1,'명'), (1,2,'%'), (2,1,'원'), (2,2,'원')]:
+    fig_dash.update_xaxes(title_text='일', row=r, col=c)
+    fig_dash.update_yaxes(title_text=yt,  row=r, col=c)
+
+fig_dash.update_layout(title_text='2026년 6월 마케팅 성과 대시보드', height=800)
+fig_dash.show()

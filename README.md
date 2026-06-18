@@ -1,6 +1,6 @@
 # Matplotlib & Seaborn 심화 + Plotly 인터랙티브 — 시각화 완전 정복
 
-Subplot 레이아웃, 히트맵, 분포도·박스플롯·바이올린 플롯, Plotly 인터랙티브 그래프까지 다루는 시각화 심화 프로젝트입니다.
+Subplot 레이아웃, 히트맵, 분포도·박스플롯·바이올린 플롯, Plotly 인터랙티브 그래프(Box/Sunburst/대시보드)까지 다루는 시각화 심화 프로젝트입니다.
 
 ## 학습 내용
 
@@ -10,7 +10,7 @@ Subplot 레이아웃, 히트맵, 분포도·박스플롯·바이올린 플롯, P
 | 2. 차트 조합 | 1×3 격자에 선 그래프·막대 그래프·산점도 동시 배치 |
 | 3. 불규칙 격자 | `plt.subplot(r, c, n)` — 위 2칸 + 아래 전체 폭 레이아웃 |
 | 4. 간격·제목 조정 | `axes.flat`, `subplots_adjust`, `suptitle`, `grid` |
-| 5. 마케팅 대시보드 | 트래픽·전환율·고객비용·매출 4가지 KPI + `fill_between` |
+| 5. 마케팅 대시보드 (Matplotlib) | 트래픽·전환율·고객비용·매출 4가지 KPI + `fill_between` |
 | 6. 히트맵 — 카페 방문자 | 요일 × 시간대별 패턴, `cmap='YlOrRd'` |
 | 7. 히트맵 — 지역 판매 | 상품 × 지역 판매량, `cmap='RdYlGn'`, `linewidths` |
 | 8. 히트맵 — 상관계수 | `data.corr()`, `cmap='coolwarm'`, `center=0`, `square=True` |
@@ -24,6 +24,9 @@ Subplot 레이아웃, 히트맵, 분포도·박스플롯·바이올린 플롯, P
 | 16. Plotly 선 그래프 | `go.Scatter`, `hovermode='x unified'`, 범례 클릭 on/off |
 | 17. Plotly 막대 그래프 | `go.Bar`, `text`, `hovertemplate` |
 | 18. Plotly 산점도 | `px.scatter(color=, size=)` — 색상·크기로 3차원 표현 |
+| 19. Plotly Box Plot | `go.Box` — hover로 Q1/중앙값/Q3 자동 표시 |
+| 20. Plotly Sunburst | `go.Sunburst(labels, parents, values)` — 계층적 데이터 원형 표현 |
+| 21. Plotly 대시보드 | `make_subplots(rows, cols)` + `fill='tozeroy'` 누적 면적 |
 
 ## 핵심 개념 정리
 
@@ -42,8 +45,7 @@ data.corr()                                   # 상관계수 행렬
 # 분포도 / 박스플롯
 ax.hist(x, bins=20, density=True)
 stats.gaussian_kde(x)                         # KDE 곡선
-ax.boxplot(data, vert=False)                  # 가로 박스플롯
-sns.boxplot(data=df, x='그룹', y='값')        # 그룹 비교
+sns.boxplot(data=df, x='그룹', y='값')
 sns.violinplot(inner='box')
 sns.stripplot(color='black', alpha=0.3)
 
@@ -52,12 +54,19 @@ Q1, Q3 = np.percentile(data, 25), np.percentile(data, 75)
 IQR = Q3 - Q1
 outliers = data[(data < Q1 - 1.5*IQR) | (data > Q3 + 1.5*IQR)]
 
-# Plotly 인터랙티브
+# Plotly 기본
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=, y=, mode='lines+markers'))
 fig.add_trace(go.Bar(x=, y=, text=, hovertemplate='...'))
+fig.add_trace(go.Box(y=data, name='그룹'))
 fig.update_layout(hovermode='x unified', template='plotly_white')
-px.scatter(df, x=, y=, color='그룹', size='값')  # Plotly Express
+
+# Plotly 고급
+go.Sunburst(labels=, parents=, values=)       # 계층적 원형 차트
+make_subplots(rows=2, cols=2)                 # 인터랙티브 서브플롯 격자
+fig.add_trace(..., row=1, col=1)              # 특정 칸에 계열 배치
+fill='tozeroy'                                # 선 아래 면적 채움 (누적 강조)
+px.scatter(df, color='그룹', size='값')       # Plotly Express 간편 산점도
 ```
 
 **주요 색상 팔레트 (cmap):**
