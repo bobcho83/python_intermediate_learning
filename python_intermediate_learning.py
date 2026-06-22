@@ -758,3 +758,86 @@ ax6.grid(True, alpha=0.3, axis='x')
 
 plt.suptitle('온라인 쇼핑몰 마케팅 성과 대시보드 (Matplotlib)', fontsize=16, fontweight='bold', y=0.995)
 plt.show()
+
+# ===== 종합 프로젝트: Plotly 인터랙티브 대시보드 =====
+
+print("\n=== 23. 종합 프로젝트 — Plotly 인터랙티브 대시보드 ===")
+
+fig_plotly = make_subplots(
+    rows=2, cols=2,
+    subplot_titles=('월별 판매액 추세', '카테고리별 판매액', '나이대별 구매액', '채널별 방문자'),
+    specs=[[{'type': 'scatter'}, {'type': 'pie'}], [{'type': 'box'}, {'type': 'bar'}]]
+)
+
+# 1. 월별 판매액 (scatter) — row=1, col=1
+fig_plotly.add_trace(
+    go.Scatter(x=months_proj, y=monthly_sales/10000, mode='lines+markers', name='판매액', line=dict(color='blue', width=3)),
+    row=1, col=1
+)
+
+# 2. 카테고리별 판매액 (파이차트) — row=1, col=2
+fig_plotly.add_trace(
+    go.Pie(labels=categories_proj, values=category_sales/10000, name='카테고리'),
+    row=1, col=2
+)
+
+# 3. 나이대별 구매액 (박스플롯) — specs type='box' → row=2, col=1
+age_group_unique = age_group.unique()
+for ag in age_group_unique:
+    fig_plotly.add_trace(
+        go.Box(y=customer_purchase[age_group == ag], name=str(ag)),
+        row=2, col=1
+    )
+
+# 4. 채널별 방문자 (막대그래프) — specs type='bar' → row=2, col=2
+fig_plotly.add_trace(
+    go.Bar(x=channels, y=channel_visits, name='방문자', marker=dict(color='teal')),
+    row=2, col=2
+)
+
+fig_plotly.update_xaxes(title_text='월', row=1, col=1)
+fig_plotly.update_xaxes(title_text='채널', row=2, col=2)
+fig_plotly.update_yaxes(title_text='판매액 (만원)', row=1, col=1)
+fig_plotly.update_yaxes(title_text='구매액 (원)', row=2, col=1)
+fig_plotly.update_yaxes(title_text='방문자 수', row=2, col=2)
+
+fig_plotly.update_layout(
+    title_text='온라인 쇼핑몰 마케팅 인터랙티브 대시보드 (Plotly)',
+    height=800,
+    showlegend=True
+)
+
+fig_plotly.show()
+
+# ============= 분석 결과 요약 =============
+
+print("\n" + "=" * 70)
+print("주요 분석 결과")
+print("=" * 70)
+
+growth       = (monthly_sales[-1] - monthly_sales[0]) / monthly_sales[0] * 100
+best_cat     = categories_proj[np.argmax(category_sales)]
+worst_cat    = categories_proj[np.argmin(category_sales)]
+best_ch      = channels[np.argmax(channel_roi)]
+most_visit_ch = channels[np.argmax(channel_visits)]
+
+print(f"판매 성과:")
+print(f"  총 판매액: {np.sum(monthly_sales):,.0f}원  /  월평균: {np.mean(monthly_sales):,.0f}원  /  성장률: {growth:.1f}%")
+print(f"고객 분석:")
+print(f"  평균 나이: {np.mean(customer_age):.0f}세  /  평균 구매액: {np.mean(customer_purchase):,.0f}원  /  만족도: {np.mean(satisfaction):.1f}/10점")
+print(f"카테고리:")
+print(f"  최고: {best_cat} ({np.max(category_sales)/10000:.0f}만원)  /  최저: {worst_cat} ({np.min(category_sales)/10000:.0f}만원)")
+print(f"채널:")
+print(f"  최고 효율: {best_ch} (ROI {np.max(channel_roi):.1f}%)  /  최다 방문: {most_visit_ch} ({np.max(channel_visits)}명)")
+print(f"전환율: 최저 {np.min(monthly_conversion):.1f}% → 최고 {np.max(monthly_conversion):.1f}%  /  평균 {np.mean(monthly_conversion):.1f}%")
+
+print("\n 권장 사항:")
+print("  1. SNS 광고 채널 방문자 수 유지 + 전환율 개선")
+print("  2. 40~50대 타겟 마케팅 강화 (만족도 높은 층)")
+print("  3. 패션 카테고리 확대, 책 카테고리 활성화 방안 모색")
+print("  4. 상승 추세 유지 — 현재 전략 고도화")
+print("  5. 고객 만족도 7.5점 이상 목표 유지")
+
+print("\n" + "=" * 70)
+print("분석 완료")
+print("=" * 70)
