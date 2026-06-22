@@ -1,4 +1,4 @@
-# Matplotlib & Seaborn 심화 — Subplot 레이아웃 + 히트맵 + 분포도 완전 정복
+# Matplotlib & Seaborn 심화 + Plotly 인터랙티브 + 종합 프로젝트 — 시각화 완전 정복
 
 # 개념 정리
 # plt.subplots(rows, cols)  : rows×cols 격자로 서브플롯 생성 — fig와 axes 배열 반환
@@ -39,6 +39,14 @@
 # template='plotly_white'  : Plotly 기본 테마 (흰 배경)
 # make_subplots(rows, cols): Plotly 서브플롯 격자 생성 — row/col 지정으로 계열 배치
 # fill='tozeroy'           : 선 아래 면적을 0까지 채움 — 누적 그래프 강조
+# fig.add_gridspec(r, c)   : Matplotlib GridSpec — 불규칙 크기 서브플롯 레이아웃
+# gs[0, :2]                : GridSpec 슬라이싱 — 특정 행/열 범위를 하나의 플롯으로 합침
+# ax.twinx()               : 동일 x축에 y축 두 개 — 방문자(막대)+전환율(선) 동시 표현
+# ax.axvline()             : 수직 참조선 추가 — 평균, 기준값 표시에 활용
+# ax.text(x, y, str)       : 막대 위 값 직접 표시 — bar.get_height()로 y값 추출
+# ax.barh()                : 가로 막대 그래프
+# patch_artist=True        : boxplot 상자를 색으로 채울 때 필요
+# pd.cut(data, bins, labels): 연속값을 구간별 카테고리로 변환 (나이대 분류 등)
 
 import numpy as np
 import pandas as pd
@@ -649,3 +657,104 @@ for r, c, yt in [(1,1,'명'), (1,2,'%'), (2,1,'원'), (2,2,'원')]:
 
 fig_dash.update_layout(title_text='2026년 6월 마케팅 성과 대시보드', height=800)
 fig_dash.show()
+
+# ===== 종합 프로젝트: 온라인 쇼핑몰 마케팅 분석 보고서 =====
+
+print("\n" + "="*70)
+print("온라인 쇼핑몰 마케팅 분석 보고서")
+print("="*70)
+
+np.random.seed(42)
+
+# 데이터 준비
+months_proj   = ['1월', '2월', '3월', '4월', '5월', '6월']
+month_num     = np.arange(1, 7)
+monthly_sales = np.array([500, 550, 580, 650, 720, 800]) * 10000
+monthly_visitors   = np.array([1000, 1100, 1200, 1400, 1600, 1800])
+monthly_conversion = np.array([5.2, 5.5, 5.8, 6.2, 6.5, 7.0])
+
+# 고객 200명 데이터
+n_customers    = 200
+customer_age   = np.clip(np.random.normal(40, 15, n_customers), 20, 70).astype(int)
+customer_purchase = np.maximum(15000 * (customer_age / 40) + np.random.normal(0, 20000, n_customers), 20000)
+satisfaction   = np.clip(np.random.normal(7.5, 1.5, n_customers), 1, 10)
+age_group      = pd.cut(customer_age, bins=[0, 30, 40, 50, 100], labels=['20~30대', '30~40대', '40~50대', '50대+'])
+
+# 상품 카테고리 / 마케팅 채널 데이터
+categories_proj  = ['패션', '전자제품', '생활용품', '식품', '책']
+category_sales   = np.array([150, 200, 120, 100, 80]) * 10000
+channels         = ['검색광고', 'SNS광고', '이메일', '제휴', '직접방문']
+channel_visits   = np.array([450, 600, 300, 200, 250])
+channel_revenue  = np.array([350, 380, 150, 120, 100]) * 10000
+
+# --- Matplotlib GridSpec 대시보드 ---
+print("\n=== 22. 종합 프로젝트 — Matplotlib GridSpec 대시보드 ===")
+fig = plt.figure(figsize=(16, 12))
+gs  = fig.add_gridspec(3, 3, hspace=0.35, wspace=0.35)
+
+# 1행 왼쪽 2칸: 월별 판매액 추세 (fill_between)
+ax1 = fig.add_subplot(gs[0, :2])
+ax1.plot(month_num, monthly_sales/10000, marker='o', linewidth=2.5, markersize=8, color='darkblue')
+ax1.fill_between(month_num, monthly_sales/10000, alpha=0.3, color='skyblue')
+ax1.set_title('월별 판매액 추세', fontsize=12, fontweight='bold')
+ax1.set_xlabel('월')
+ax1.set_ylabel('판매액 (만원)')
+ax1.grid(True, alpha=0.3)
+ax1.set_xticks(month_num)
+ax1.set_xticklabels(months_proj)
+
+# 1행 오른쪽 1칸: 방문자 막대 + 전환율 선 (twinx — 이중 y축)
+ax2      = fig.add_subplot(gs[0, 2])
+ax2_twin = ax2.twinx()
+ax2.bar(month_num, monthly_visitors, color='lightblue', alpha=0.7)
+ax2_twin.plot(month_num, monthly_conversion, marker='s', color='red', linewidth=2)
+ax2.set_title('방문자 vs 전환율', fontsize=12, fontweight='bold')
+ax2.set_ylabel('방문자 수', color='blue')
+ax2_twin.set_ylabel('전환율 (%)', color='red')
+ax2.set_xticks(month_num)
+ax2.set_xticklabels(months_proj)
+ax2.grid(True, alpha=0.3, axis='y')
+
+# 2행 왼쪽 2칸: 나이대별 구매액 Box Plot (patch_artist=True로 색상 적용)
+ax3 = fig.add_subplot(gs[1, :2])
+age_purchase_data = [customer_purchase[age_group == g] for g in age_group.categories]
+bp = ax3.boxplot(age_purchase_data, tick_labels=age_group.categories, patch_artist=True)
+for patch, color in zip(bp['boxes'], ['red', 'blue', 'green', 'orange']):
+    patch.set_facecolor(color)
+    patch.set_alpha(0.6)
+ax3.set_title('고객 나이대별 구매액 분포', fontsize=12, fontweight='bold')
+ax3.set_ylabel('구매액 (원)')
+ax3.grid(True, alpha=0.3, axis='y')
+
+# 2행 오른쪽 1칸: 고객 만족도 히스토그램 + axvline 평균선
+ax4 = fig.add_subplot(gs[1, 2])
+ax4.hist(satisfaction, bins=15, color='purple', alpha=0.7, edgecolor='black')
+ax4.axvline(np.mean(satisfaction), color='red', linestyle='--', linewidth=2,
+            label=f'평균: {np.mean(satisfaction):.1f}')
+ax4.set_title('고객 만족도 분포', fontsize=12, fontweight='bold')
+ax4.set_xlabel('만족도 점수')
+ax4.set_ylabel('빈도')
+ax4.legend()
+ax4.grid(True, alpha=0.3, axis='y')
+
+# 3행 왼쪽 2칸: 카테고리별 판매액 막대 + 값 표시
+ax5 = fig.add_subplot(gs[2, :2])
+colors_cat = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8']
+bars = ax5.bar(categories_proj, category_sales/10000, color=colors_cat, alpha=0.8, edgecolor='black')
+ax5.set_title('상품 카테고리별 판매액', fontsize=12, fontweight='bold')
+ax5.set_ylabel('판매액 (만원)')
+ax5.grid(True, alpha=0.3, axis='y')
+for bar in bars:
+    h = bar.get_height()
+    ax5.text(bar.get_x() + bar.get_width()/2., h, f'{int(h)}', ha='center', va='bottom', fontweight='bold')
+
+# 3행 오른쪽 1칸: 마케팅 채널별 ROI 가로 막대
+ax6 = fig.add_subplot(gs[2, 2])
+channel_roi = channel_revenue / (channel_visits * 5000) * 100
+ax6.barh(channels, channel_roi, color='teal', alpha=0.8)
+ax6.set_title('마케팅 채널별 ROI', fontsize=12, fontweight='bold')
+ax6.set_xlabel('ROI (%)')
+ax6.grid(True, alpha=0.3, axis='x')
+
+plt.suptitle('온라인 쇼핑몰 마케팅 성과 대시보드 (Matplotlib)', fontsize=16, fontweight='bold', y=0.995)
+plt.show()

@@ -1,6 +1,6 @@
-# Matplotlib & Seaborn 심화 + Plotly 인터랙티브 — 시각화 완전 정복
+# Matplotlib & Seaborn 심화 + Plotly 인터랙티브 + 종합 프로젝트 — 시각화 완전 정복
 
-Subplot 레이아웃, 히트맵, 분포도·박스플롯·바이올린 플롯, Plotly 인터랙티브 그래프(Box/Sunburst/대시보드)까지 다루는 시각화 심화 프로젝트입니다.
+Subplot 레이아웃, 히트맵, 분포도·박스플롯·바이올린 플롯, Plotly 인터랙티브, GridSpec 종합 대시보드까지 다루는 시각화 심화 프로젝트입니다.
 
 ## 학습 내용
 
@@ -21,52 +21,43 @@ Subplot 레이아웃, 히트맵, 분포도·박스플롯·바이올린 플롯, P
 | 13. Violin Plot | `sns.violinplot(inner='box')` + `sns.stripplot` |
 | 14. 연령대별 분포 비교 | `sns.boxplot` + `sns.violinplot` 그룹 비교 |
 | 15. 이상치 탐지 | IQR 방법 — `Q1 - 1.5×IQR ~ Q3 + 1.5×IQR` |
-| 16. Plotly 선 그래프 | `go.Scatter`, `hovermode='x unified'`, 범례 클릭 on/off |
+| 16. Plotly 선 그래프 | `go.Scatter`, `hovermode='x unified'` |
 | 17. Plotly 막대 그래프 | `go.Bar`, `text`, `hovertemplate` |
-| 18. Plotly 산점도 | `px.scatter(color=, size=)` — 색상·크기로 3차원 표현 |
+| 18. Plotly 산점도 | `px.scatter(color=, size=)` — 3차원 표현 |
 | 19. Plotly Box Plot | `go.Box` — hover로 Q1/중앙값/Q3 자동 표시 |
-| 20. Plotly Sunburst | `go.Sunburst(labels, parents, values)` — 계층적 데이터 원형 표현 |
-| 21. Plotly 대시보드 | `make_subplots(rows, cols)` + `fill='tozeroy'` 누적 면적 |
+| 20. Plotly Sunburst | `go.Sunburst(labels, parents, values)` — 계층적 원형 차트 |
+| 21. Plotly 대시보드 | `make_subplots(rows, cols)` + `fill='tozeroy'` |
+| **22. 종합 프로젝트** | **GridSpec 6칸 대시보드 — twinx·patch_artist·axvline·barh·text 총집합** |
 
 ## 핵심 개념 정리
 
 ```python
-# Matplotlib Subplot
-plt.subplots(rows, cols)                      # 격자 생성
-axes.flat                                     # 2D axes → 1D 순회
-ax.fill_between(x, y, alpha=0.3)              # 선 아래 면적
+# Matplotlib Subplot / GridSpec
+plt.subplots(rows, cols)                      # 균일 격자
+fig.add_gridspec(3, 3, hspace=, wspace=)      # 불규칙 크기 격자
+gs[0, :2]                                     # 슬라이싱으로 칸 합치기
+ax.twinx()                                    # 이중 y축 (막대+선 동시)
+ax.axvline(x, color=, linestyle='--')         # 수직 참조선
+ax.text(x, y, str, ha='center', va='bottom')  # 막대 위 값 표시
+ax.barh(y, x)                                 # 가로 막대 그래프
+ax.boxplot(data, patch_artist=True)           # 박스플롯 색상 채우기
+pd.cut(data, bins, labels)                    # 연속값 → 구간 카테고리
 
-# Seaborn Heatmap
-sns.heatmap(data, annot=True, fmt='d',
-    cmap='coolwarm', center=0, vmin=-1, vmax=1,
-    square=True, linewidths=1, linecolor='white')
+# Seaborn
+sns.heatmap(data, annot=True, fmt='d', cmap='coolwarm', center=0)
 data.corr()                                   # 상관계수 행렬
-
-# 분포도 / 박스플롯
-ax.hist(x, bins=20, density=True)
-stats.gaussian_kde(x)                         # KDE 곡선
-sns.boxplot(data=df, x='그룹', y='값')
-sns.violinplot(inner='box')
-sns.stripplot(color='black', alpha=0.3)
+sns.violinplot(inner='box') + sns.stripplot() # violin + 개별 점
 
 # 이상치 탐지 (IQR)
 Q1, Q3 = np.percentile(data, 25), np.percentile(data, 75)
-IQR = Q3 - Q1
-outliers = data[(data < Q1 - 1.5*IQR) | (data > Q3 + 1.5*IQR)]
+outliers = data[(data < Q1-1.5*(Q3-Q1)) | (data > Q3+1.5*(Q3-Q1))]
 
-# Plotly 기본
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=, y=, mode='lines+markers'))
-fig.add_trace(go.Bar(x=, y=, text=, hovertemplate='...'))
-fig.add_trace(go.Box(y=data, name='그룹'))
+# Plotly
+go.Figure() → add_trace(go.Scatter/Bar/Box/Sunburst)
 fig.update_layout(hovermode='x unified', template='plotly_white')
-
-# Plotly 고급
-go.Sunburst(labels=, parents=, values=)       # 계층적 원형 차트
-make_subplots(rows=2, cols=2)                 # 인터랙티브 서브플롯 격자
-fig.add_trace(..., row=1, col=1)              # 특정 칸에 계열 배치
-fill='tozeroy'                                # 선 아래 면적 채움 (누적 강조)
-px.scatter(df, color='그룹', size='값')       # Plotly Express 간편 산점도
+make_subplots(rows=2, cols=2) → add_trace(..., row=, col=)
+fill='tozeroy'                                # 누적 면적 강조
+px.scatter(df, color='그룹', size='값')
 ```
 
 **주요 색상 팔레트 (cmap):**
